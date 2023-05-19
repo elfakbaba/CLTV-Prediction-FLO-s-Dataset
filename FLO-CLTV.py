@@ -171,9 +171,9 @@ cltv = ggf.customer_lifetime_value(bgf,
                                    cltv_df['recency_cltv_weekly'],
                                    cltv_df['T_weekly'],
                                    cltv_df['monetary_cltv_avg'],
-                                   time=6, #aylık
-                                   freq="W", # verilen bilgiler aylık mı? haftalık mı?
-                                   discount_rate=0.01) #kampanya etkisi göz önünde bulunduruluyor.
+                                   time=6, 
+                                   freq="W", 
+                                   discount_rate=0.01) 
 cltv_df["cltv"] = cltv
 
 cltv_df.head()
@@ -182,27 +182,15 @@ cltv_df.head()
 cltv_df.sort_values("cltv",ascending=False)[:20]
 
 ###############################################################
-# GÖREV 4: CLTV'ye Göre Segmentlerin Oluşturulması
+# TASK 4: Configuring Segments by CLTV
 ###############################################################
-
-# 1. 6 aylık standartlaştırılmış CLTV'ye göre tüm müşterilerinizi 4 gruba (segmente) ayırınız ve grup isimlerini veri setine ekleyiniz.
-# cltv_segment ismi ile atayınız.
 
 cltv_df["cltv_segment"] = pd.qcut(cltv_df["cltv"], 4, labels=["D", "C", "B", "A"])
 cltv_df.head()
 
-
-# 2. CLTV skorlarına göre müşterileri 4 gruba ayırmak mantıklı mıdır? Daha az mı ya da daha çok mu olmalıdır. Yorumlayalım:
 cltv_df.groupby("cltv_segment").agg({"count","mean","sum"})
 
 cltv_df[["segment", "recency_cltv_weekly", "frequency", "monetary_cltv_avg"]].groupby("cltv_segment").agg(["mean", "count"]) #sadece belirli değişkenler için hesaplamaları istersek:
-
-
-
-# 3. 4 grup içerisinden seçeceğiniz 2 grup için yönetime kısa kısa 6 aylık aksiyon önerilerinde bulununuz
-
-
-
 
 ###############################################################
 # BONUS:
@@ -210,7 +198,6 @@ cltv_df[["segment", "recency_cltv_weekly", "frequency", "monetary_cltv_avg"]].gr
 
 def create_cltv_df(dataframe):
 
-    # Veriyi Hazırlama
     columns = ["order_num_total_ever_online", "order_num_total_ever_offline", "customer_value_total_ever_offline","customer_value_total_ever_online"]
     for col in columns:
         replace_with_thresholds(dataframe, col)
@@ -221,7 +208,6 @@ def create_cltv_df(dataframe):
     date_columns = dataframe.columns[dataframe.columns.str.contains("date")]
     dataframe[date_columns] = dataframe[date_columns].apply(pd.to_datetime)
 
-    # CLTV veri yapısının oluşturulması
     dataframe["last_order_date"].max()  # 2021-05-30
     analysis_date = dt.datetime(2021, 6, 1)
     cltv_df = pd.DataFrame()
@@ -232,7 +218,7 @@ def create_cltv_df(dataframe):
     cltv_df["monetary_cltv_avg"] = dataframe["customer_value_total"] / dataframe["order_num_total"]
     cltv_df = cltv_df[(cltv_df['frequency'] > 1)]
 
-    # BG-NBD Modelinin Kurulması
+    # BG-NBD Model
     bgf = BetaGeoFitter(penalizer_coef=0.001)
     bgf.fit(cltv_df['frequency'],
             cltv_df['recency_cltv_weekly'],
@@ -246,13 +232,13 @@ def create_cltv_df(dataframe):
                                                cltv_df['recency_cltv_weekly'],
                                                cltv_df['T_weekly'])
 
-    # # Gamma-Gamma Modelinin Kurulması
+    # # Gamma-Gamma Model
     ggf = GammaGammaFitter(penalizer_coef=0.01)
     ggf.fit(cltv_df['frequency'], cltv_df['monetary_cltv_avg'])
     cltv_df["exp_average_value"] = ggf.conditional_expected_average_profit(cltv_df['frequency'],
                                                                            cltv_df['monetary_cltv_avg'])
 
-    # Cltv tahmini
+    # Cltv 
     cltv = ggf.customer_lifetime_value(bgf,
                                        cltv_df['frequency'],
                                        cltv_df['recency_cltv_weekly'],
@@ -263,7 +249,7 @@ def create_cltv_df(dataframe):
                                        discount_rate=0.01)
     cltv_df["cltv"] = cltv
 
-    # CLTV segmentleme
+    # CLTV segment
     cltv_df["cltv_segment"] = pd.qcut(cltv_df["cltv"], 4, labels=["D", "C", "B", "A"])
 
     return cltv_df
