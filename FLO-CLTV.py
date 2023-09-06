@@ -78,7 +78,7 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.float_format', lambda x: '%.2f' % x)
 pd.options.mode.chained_assignment = None
 
-df_ = pd.read_csv("Downloads/crmAnalytics/flo_data_20K.csv")
+df_ = pd.read_csv("elfakbaba/pythonprojects/flo_data_20K.csv")
 df = df_.copy()
 df.head()
 df.describe().T
